@@ -39,7 +39,14 @@ export async function GET() {
         webSearch: anthropic.tools.webSearch_20250305(),
       },
       stopWhen: stepCountIs(10),
-      system: PORTFOLIO_SYSTEM,
+      headers: { "anthropic-beta": "prompt-caching-2024-07-31" },
+      system: {
+        role: "system" as const,
+        content: PORTFOLIO_SYSTEM,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
       prompt: `Research and identify exactly 3 halal-compliant, high-growth stock suggestions that Abdulla does not already own. Search for current analyst recommendations and growth stocks that pass halal screening. Verify each candidate passes halal screening before including it.
 
 Return ONLY a valid JSON array — no markdown, no explanation. Exactly 3 items:

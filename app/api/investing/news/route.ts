@@ -36,7 +36,14 @@ export async function GET() {
         webSearch: anthropic.tools.webSearch_20250305(),
       },
       stopWhen: stepCountIs(12),
-      system: PORTFOLIO_SYSTEM,
+      headers: { "anthropic-beta": "prompt-caching-2024-07-31" },
+      system: {
+        role: "system" as const,
+        content: PORTFOLIO_SYSTEM,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
       prompt: `Search for today's latest news for each of these stocks: SPUS, UMMA, NVDA, TSM, LLY, JNJ, AMZN, AVGO. Search each ticker individually for the most recent news.
 
 Return ONLY a valid JSON array — no markdown, no explanation, no extra text before or after. Use this exact structure:

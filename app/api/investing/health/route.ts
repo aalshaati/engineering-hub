@@ -41,7 +41,14 @@ export async function GET() {
         webSearch: anthropic.tools.webSearch_20250305(),
       },
       stopWhen: stepCountIs(12),
-      system: PORTFOLIO_SYSTEM,
+      headers: { "anthropic-beta": "prompt-caching-2024-07-31" },
+      system: {
+        role: "system" as const,
+        content: PORTFOLIO_SYSTEM,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
       prompt: `Search for the current health and analyst outlook for each of these holdings: SPUS, UMMA, NVDA, TSM, LLY, JNJ, AMZN, AVGO. Look up recent analyst ratings, earnings results, and any red flags.
 
 Return ONLY a valid JSON array — no markdown, no explanation. One entry per ticker:

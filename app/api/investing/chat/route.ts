@@ -36,7 +36,14 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: anthropic("claude-sonnet-4-6"),
-    system: PORTFOLIO_SYSTEM,
+    headers: { "anthropic-beta": "prompt-caching-2024-07-31" },
+    system: {
+      role: "system" as const,
+      content: PORTFOLIO_SYSTEM,
+      providerOptions: {
+        anthropic: { cacheControl: { type: "ephemeral" } },
+      },
+    },
     messages,
   });
 
