@@ -74,8 +74,8 @@ export default function NotesPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-3 py-1.5 rounded-md text-xs font-mono transition-colors ${
               activeTab === tab.id
-                ? "bg-zinc-800 text-foreground"
-                : "text-muted hover:text-foreground hover:bg-zinc-800/60"
+                ? "bg-card text-foreground"
+                : "text-muted hover:text-foreground hover:bg-card/60"
             }`}
           >
             {tab.label}

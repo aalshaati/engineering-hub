@@ -38,7 +38,57 @@ const features = [
     description: "Claude-powered engineering assistant",
     icon: "◎",
   },
+  {
+    label: "Investing",
+    href: "/investing",
+    description: "Halal portfolio dashboard",
+    icon: "◆",
+  },
 ];
+
+function HealthCard() {
+  const [steps, setSteps] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/health/data")
+      .then((r) => r.json())
+      .then((data) => {
+        const today = new Date().toDateString();
+        const todayMetrics = (data.metrics ?? []).filter(
+          (m: { timestamp: string }) => new Date(m.timestamp).toDateString() === today
+        );
+        if (!todayMetrics.length) return;
+        const latest = todayMetrics[todayMetrics.length - 1];
+        const s =
+          latest.steps ??
+          latest.stepCount ??
+          latest.HKQuantityTypeIdentifierStepCount ??
+          null;
+        if (s !== null) setSteps(Number(s));
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <Link
+      href="/health"
+      className="group block p-4 rounded-lg border border-border bg-sidebar hover:border-accent/40 hover:bg-card transition-colors"
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span className="font-mono text-accent text-xs">♡</span>
+        <span className="text-sm font-medium">Health</span>
+      </div>
+      <p className="text-xs text-muted leading-relaxed">
+        Apple Health metrics and nutrition tracking
+      </p>
+      {steps !== null && (
+        <p className="font-mono text-xs text-accent mt-2">
+          {steps.toLocaleString()} steps today
+        </p>
+      )}
+    </Link>
+  );
+}
 
 export default function Home() {
   const [greeting, setGreeting] = useState("");
@@ -65,12 +115,12 @@ export default function Home() {
         <p className="font-mono text-xs text-muted uppercase tracking-widest mb-3">
           Hub
         </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {features.map((f) => (
             <Link
               key={f.href}
               href={f.href}
-              className="group block p-4 rounded-lg border border-border bg-sidebar hover:border-accent/40 hover:bg-zinc-800 transition-colors"
+              className="group block p-4 rounded-lg border border-border bg-sidebar hover:border-accent/40 hover:bg-card transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <span className="font-mono text-accent text-xs">{f.icon}</span>
@@ -81,6 +131,7 @@ export default function Home() {
               </p>
             </Link>
           ))}
+          <HealthCard />
         </div>
       </div>
 

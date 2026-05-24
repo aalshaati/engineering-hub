@@ -93,7 +93,7 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-4">
         {messages.length === 0 && (
           <div className="flex justify-end">
-            <div className="max-w-sm rounded-2xl rounded-tr-sm bg-zinc-800 px-4 py-3">
+            <div className="max-w-sm rounded-2xl rounded-tr-sm bg-card px-4 py-3">
               <p className="text-sm leading-relaxed">
                 Hey Abdulla! I&apos;m Claude. Ask me anything — code, hardware,
                 AI concepts, or whatever you&apos;re working on.
@@ -111,7 +111,7 @@ export default function ChatPage() {
               className={`max-w-xl rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                 m.role === "user"
                   ? "bg-sidebar border border-border rounded-tl-sm"
-                  : "bg-zinc-800 rounded-tr-sm"
+                  : "bg-card rounded-tr-sm"
               }`}
             >
               {m.content}

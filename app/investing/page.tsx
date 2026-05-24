@@ -281,7 +281,7 @@ function SuggestionsTab({
                 initialQuery: `Tell me more about ${s.ticker} — ${s.name}. Is it a good halal investment for a passive growth investor? Include recent financials, growth catalysts, and any risks I should know about.`,
               })
             }
-            className="mt-auto w-full py-2 text-xs font-mono font-medium rounded-lg bg-zinc-800 hover:bg-zinc-700 text-foreground border border-border transition-colors"
+            className="mt-auto w-full py-2 text-xs font-mono font-medium rounded-lg bg-card hover:bg-card/70 text-foreground border border-border transition-colors"
           >
             Research this →
           </button>
@@ -606,8 +606,8 @@ function ResearchPanel({
               <div
                 className={`max-w-[85%] rounded-2xl px-3 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                   m.role === "user"
-                    ? "bg-zinc-800/80 border border-border rounded-tl-sm"
-                    : "bg-zinc-900 border border-border rounded-tr-sm"
+                    ? "bg-card/80 border border-border rounded-tl-sm"
+                    : "bg-sidebar border border-border rounded-tr-sm"
                 }`}
               >
                 {m.content}
@@ -634,7 +634,7 @@ function ResearchPanel({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask a follow-up..."
             disabled={isLoading}
-            className="flex-1 bg-zinc-800/60 border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-cyan-400/60 disabled:opacity-50"
+            className="flex-1 bg-card/60 border border-border rounded-lg px-3 py-2 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-cyan-400/60 disabled:opacity-50"
           />
           <button
             type="submit"

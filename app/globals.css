@@ -7,6 +7,17 @@
   --border: #27272a;
   --muted: #71717a;
   --accent: #22d3ee;
+  --card: #27272a;
+}
+
+.light {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --sidebar: #f1f5f9;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --accent: #0891b2;
+  --card: #e2e8f0;
 }
 
 @theme inline {
@@ -16,6 +27,7 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-card: var(--card);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
