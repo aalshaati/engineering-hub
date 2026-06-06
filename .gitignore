@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# personal coaching data — keep out of version control
+coach/profile.md
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
