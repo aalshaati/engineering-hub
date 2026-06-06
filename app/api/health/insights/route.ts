@@ -2,7 +2,6 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { Redis } from "@upstash/redis";
 
-type MetricEntry = { timestamp: string; [key: string]: unknown };
 type MealEntry = { timestamp: string; meal: string; calories: number; notes: string };
 
 const redis = new Redis({
@@ -16,34 +15,33 @@ export async function POST() {
   }
 
   try {
-    const [allMetrics, allMeals] = await Promise.all([
-      redis.lrange<MetricEntry>("health:metrics", 0, -1),
+    const [allDailyKeys, allMeals] = await Promise.all([
+      redis.keys("health:daily:*"),
       redis.lrange<MealEntry>("health:meals", 0, -1),
     ]);
 
+    const recentKeys = allDailyKeys.sort().slice(-7);
+    const dailyRecords = recentKeys.length > 0
+      ? await Promise.all(recentKeys.map((k) => redis.get(k)))
+      : [];
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentMeals = allMeals.filter((m) => new Date(m.timestamp) >= sevenDaysAgo);
 
-    const recentMetrics = allMetrics.filter(
-      (m) => new Date(m.timestamp) >= sevenDaysAgo
-    );
-    const recentMeals = allMeals.filter(
-      (m) => new Date(m.timestamp) >= sevenDaysAgo
-    );
-
-    const hasData = recentMetrics.length > 0 || recentMeals.length > 0;
+    const hasData = dailyRecords.length > 0 || recentMeals.length > 0;
     const prompt = hasData
-      ? `Here is my Apple Health data and meal log from the last 7 days:
+      ? `Here is my Apple Health daily summaries and meal log from the last 7 days.
 
-METRICS:
-${JSON.stringify(recentMetrics, null, 2)}
+DAILY SUMMARIES (each record = one day; calories_in = food/dietary energy, calories_burned = active energy from movement):
+${JSON.stringify(dailyRecords.filter(Boolean), null, 2)}
 
-MEALS:
+MEALS LOGGED:
 ${JSON.stringify(recentMeals, null, 2)}
 
 Give me direct, specific, actionable nutrition and health insights. Cover:
-1. Nutrition patterns from meals logged
-2. Activity and sleep trends from health metrics
+1. Nutrition patterns — daily calorie intake vs burn, protein adequacy, macro balance
+2. Activity trends from step counts
 3. 2–3 concrete recommendations for this week`
       : `I have no health data or meals logged yet. Give me general recommendations for getting started with health tracking, including what metrics matter most and how to build a consistent meal logging habit. Be direct and practical.`;
 

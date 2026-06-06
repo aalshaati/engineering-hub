@@ -4,50 +4,14 @@ import { useEffect, useRef, useState } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type MetricEntry = { timestamp: string; [key: string]: unknown };
 type MealEntry = { timestamp: string; meal: string; calories: number; notes: string };
-type HealthData = { metrics: MetricEntry[]; meals: MealEntry[] };
-
-type TodayMetrics = {
-  steps: number | null;
-  heartRate: number | null;
-  sleep: number | null;
-  calories: number | null;
-};
+type TodayMetrics = { steps: number | null; heartRate: number | null; sleep: number | null; calories_in: number | null; calories_burned: number | null };
+type HealthData = { todayMetrics: TodayMetrics; meals: MealEntry[] };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isToday(ts: string) {
   return new Date(ts).toDateString() === new Date().toDateString();
-}
-
-function extractTodayMetrics(metrics: MetricEntry[]): TodayMetrics {
-  const todayEntries = metrics.filter((m) => isToday(m.timestamp));
-  if (!todayEntries.length) return { steps: null, heartRate: null, sleep: null, calories: null };
-  const latest = todayEntries[todayEntries.length - 1];
-  return {
-    steps:
-      (latest.steps as number) ??
-      (latest.stepCount as number) ??
-      (latest.HKQuantityTypeIdentifierStepCount as number) ??
-      null,
-    heartRate:
-      (latest.heartRate as number) ??
-      (latest.heart_rate as number) ??
-      (latest.HKQuantityTypeIdentifierHeartRate as number) ??
-      null,
-    sleep:
-      (latest.sleep as number) ??
-      (latest.sleepHours as number) ??
-      (latest.sleepAnalysis as number) ??
-      (latest.HKCategoryTypeIdentifierSleepAnalysis as number) ??
-      null,
-    calories:
-      (latest.activeEnergyBurned as number) ??
-      (latest.calories as number) ??
-      (latest.HKQuantityTypeIdentifierActiveEnergyBurned as number) ??
-      null,
-  };
 }
 
 // ─── Metric card ──────────────────────────────────────────────────────────────
@@ -282,7 +246,7 @@ export default function HealthPage() {
       const data = await res.json();
       setHealthData(data);
     } catch {
-      setHealthData({ metrics: [], meals: [] });
+      setHealthData({ todayMetrics: { steps: null, heartRate: null, sleep: null, calories_in: null, calories_burned: null }, meals: [] });
     } finally {
       setLoading(false);
     }
@@ -295,7 +259,7 @@ export default function HealthPage() {
     }
   }, []);
 
-  const todayMetrics = healthData ? extractTodayMetrics(healthData.metrics) : null;
+  const todayMetrics = healthData?.todayMetrics ?? null;
   const todayMeals = healthData
     ? healthData.meals.filter((m) => isToday(m.timestamp))
     : [];
@@ -314,7 +278,7 @@ export default function HealthPage() {
       {/* Today's metric cards */}
       <div>
         <p className="font-mono text-xs text-muted uppercase tracking-widest mb-3">Today</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <MetricCard
             label="Steps"
             value={todayMetrics?.steps ?? null}
@@ -337,10 +301,17 @@ export default function HealthPage() {
             loading={loading}
           />
           <MetricCard
-            label="Calories"
-            value={todayMetrics?.calories ?? null}
+            label="Calories In"
+            value={todayMetrics?.calories_in ?? null}
             unit="kcal"
             icon="◆"
+            loading={loading}
+          />
+          <MetricCard
+            label="Calories Burned"
+            value={todayMetrics?.calories_burned ?? null}
+            unit="kcal"
+            icon="◈"
             loading={loading}
           />
         </div>

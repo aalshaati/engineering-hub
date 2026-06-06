@@ -53,17 +53,7 @@ function HealthCard() {
     fetch("/api/health/data")
       .then((r) => r.json())
       .then((data) => {
-        const today = new Date().toDateString();
-        const todayMetrics = (data.metrics ?? []).filter(
-          (m: { timestamp: string }) => new Date(m.timestamp).toDateString() === today
-        );
-        if (!todayMetrics.length) return;
-        const latest = todayMetrics[todayMetrics.length - 1];
-        const s =
-          latest.steps ??
-          latest.stepCount ??
-          latest.HKQuantityTypeIdentifierStepCount ??
-          null;
+        const s = data.todayMetrics?.steps ?? null;
         if (s !== null) setSteps(Number(s));
       })
       .catch(() => {});
