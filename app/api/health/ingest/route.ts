@@ -20,6 +20,7 @@ type DailyRecord = {
   heart_rate_latest: number | null;
   resting_heart_rate: number | null;
   sleep_hours: number | null;
+  weight_lb?: number | null;
   sources: string[];
   updated_at: string;
 };
@@ -91,7 +92,10 @@ function computeDaily(day: string, rawMetrics: Record<string, Reading[]>): Daily
 }
 
 async function upsertDay(day: string, incomingMetrics: Record<string, Reading[]>): Promise<void> {
-  const existingRaw = await redis.get<RawRecord>(`health:raw:${day}`);
+  const [existingRaw, existingDaily] = await Promise.all([
+    redis.get<RawRecord>(`health:raw:${day}`),
+    redis.get<DailyRecord>(`health:daily:${day}`),
+  ]);
   const existingMetrics: Record<string, Reading[]> = existingRaw?.metrics ?? {};
 
   // Merge existing + incoming, deduplicating by exact match
@@ -111,8 +115,11 @@ async function upsertDay(day: string, incomingMetrics: Record<string, Reading[]>
     mergedMetrics[metricName] = [...readingMap.values()].sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  const newRecord = computeDaily(day, mergedMetrics);
+  if (existingDaily?.weight_lb != null) newRecord.weight_lb = existingDaily.weight_lb;
+
   await Promise.all([
-    redis.set(`health:daily:${day}`, JSON.stringify(computeDaily(day, mergedMetrics))),
+    redis.set(`health:daily:${day}`, JSON.stringify(newRecord)),
     redis.set(`health:raw:${day}`, JSON.stringify({ date: day, metrics: mergedMetrics, updated_at: new Date().toISOString() })),
   ]);
 }
