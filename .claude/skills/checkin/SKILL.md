@@ -23,19 +23,22 @@ Read these three files before proceeding:
 
 ---
 
-## Step 3 — Get morning weight (both modes)
+## Step 3 — Morning weight (both modes)
 
-Ask: **"What's your weight this morning? (lb — or type 'skip' if no scale)"**
-
-If a number is given, write it into `health:daily:YYYY-MM-DD` as `weight_lb` (get/modify/set). The ingest route preserves this field on every sync.
-
-**Write pattern:**
+First, check if today's record already has `weight_lb`:
 
 ```bash
-cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs write-weight $(date +%Y-%m-%d) WEIGHT_VALUE
+cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs read-day
 ```
 
-Replace `WEIGHT_VALUE` with the number the user gave before running. If skipped, note missing weight and continue.
+- **If `weight_lb` is non-null:** say "Weight already logged: XXX lb (from the Hub). Using that." Do NOT prompt and do NOT write — the Hub form is the source of truth.
+- **If `weight_lb` is null:** ask **"What's your weight this morning? (lb — or 'skip')"**
+  - If a number is given, write it:
+    ```bash
+    cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs write-weight $(date +%Y-%m-%d) WEIGHT_VALUE
+    ```
+    Replace `WEIGHT_VALUE` with the number the user gave before running.
+  - If skipped: note missing weight and continue.
 
 ---
 

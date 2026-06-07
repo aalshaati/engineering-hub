@@ -40,7 +40,7 @@ yarn-error.log*
 coach/profile.md
 
 # local data files
-data/
+/data/
 
 # typescript
 *.tsbuildinfo
