@@ -33,22 +33,24 @@ export async function GET() {
       timeZone: "America/Los_Angeles",
     });
 
-    const [daily, meals] = await Promise.all([
+    const [daily, meals, overrides] = await Promise.all([
       redis.get<DailyRecord>(`health:daily:${todayKey}`),
       redis.lrange<MealEntry>("health:meals", 0, -1),
+      redis.get<Record<string, number>>(`health:override:${todayKey}`),
     ]);
 
+    const o = overrides ?? {};
     const todayMetrics = {
-      steps: daily?.steps ?? null,
+      steps: o.steps ?? daily?.steps ?? null,
       heartRate: daily?.heart_rate_latest ?? null,
       sleep: daily?.sleep_hours ?? null,
-      calories_in: daily?.calories_in ?? null,
-      calories_burned: daily?.calories_burned ?? null,
-      protein_g: daily?.protein_g ?? null,
+      calories_in: o.calories_in ?? daily?.calories_in ?? null,
+      calories_burned: o.calories_burned ?? daily?.calories_burned ?? null,
+      protein_g: o.protein_g ?? daily?.protein_g ?? null,
       weight_lb: daily?.weight_lb ?? null,
     };
 
-    return Response.json({ todayMetrics, meals });
+    return Response.json({ todayMetrics, meals, overrides: o });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return Response.json({ error: message }, { status: 500 });

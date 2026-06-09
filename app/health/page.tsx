@@ -23,7 +23,8 @@ type TodayMetrics = {
   protein_g: number | null;
   weight_lb: number | null;
 };
-type HealthData = { todayMetrics: TodayMetrics; meals: MealEntry[] };
+type Overrides = Partial<Record<"steps" | "calories_in" | "calories_burned" | "protein_g", number>>;
+type HealthData = { todayMetrics: TodayMetrics; meals: MealEntry[]; overrides: Overrides };
 type WeightPoint = { date: string; weight_lb: number | null; avg?: number | null };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -53,34 +54,141 @@ function MetricCard({
   unit,
   icon,
   loading,
+  overrideField,
+  isOverridden,
+  onOverride,
 }: {
   label: string;
   value: number | null;
   unit: string;
   icon: string;
   loading: boolean;
+  overrideField?: "steps" | "calories_in" | "calories_burned" | "protein_g";
+  isOverridden?: boolean;
+  onOverride?: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function save(newValue: string | null) {
+    if (!overrideField) return;
+    setSaving(true);
+    try {
+      await fetch("/api/health/override", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field: overrideField,
+          value: newValue === null || newValue === "" ? null : Number(newValue),
+        }),
+      });
+      setEditing(false);
+      setInput("");
+      onOverride?.();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const formatted =
+    value === null
+      ? null
+      : label === "Sleep"
+      ? value.toFixed(1)
+      : label === "Heart Rate"
+      ? Math.round(value).toString()
+      : Math.round(value).toLocaleString();
+
   return (
-    <div className="border border-border rounded-xl p-4 sm:p-5 bg-sidebar flex flex-col gap-2">
+    <div className="border border-border rounded-xl p-4 sm:p-5 bg-sidebar flex flex-col gap-2 group">
       <div className="flex items-center gap-2">
         <span className="font-mono text-accent text-xs">{icon}</span>
         <span className="font-mono text-xs text-muted uppercase tracking-widest">{label}</span>
+        {isOverridden && !editing && (
+          <span className="ml-auto font-mono text-[10px] text-accent" title="Manually corrected">
+            ✎ edited
+          </span>
+        )}
       </div>
+
       {loading ? (
         <div className="h-8 w-20 bg-card/60 rounded animate-pulse" />
-      ) : value !== null ? (
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-semibold tracking-tight">
-            {label === "Sleep"
-              ? value.toFixed(1)
-              : label === "Heart Rate"
-              ? Math.round(value)
-              : Math.round(value).toLocaleString()}
-          </span>
-          <span className="font-mono text-xs text-muted">{unit}</span>
-        </div>
+      ) : editing ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            save(input);
+          }}
+          className="flex flex-col gap-2"
+        >
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              autoFocus
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={formatted ?? "value"}
+              className="w-24 bg-card/60 border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-accent/60"
+            />
+            <span className="font-mono text-xs text-muted">{unit}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <button
+              type="submit"
+              disabled={saving || input === ""}
+              className="text-accent disabled:opacity-40"
+            >
+              save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(false);
+                setInput("");
+              }}
+              className="text-muted hover:text-foreground"
+            >
+              cancel
+            </button>
+            {isOverridden && (
+              <button
+                type="button"
+                onClick={() => save(null)}
+                disabled={saving}
+                className="ml-auto text-muted hover:text-foreground"
+                title="Clear override, use Apple Health value"
+              >
+                reset
+              </button>
+            )}
+          </div>
+        </form>
       ) : (
-        <span className="text-xl font-mono text-muted">—</span>
+        <div className="flex items-baseline gap-1.5">
+          {formatted !== null ? (
+            <>
+              <span className="text-2xl font-semibold tracking-tight">{formatted}</span>
+              <span className="font-mono text-xs text-muted">{unit}</span>
+            </>
+          ) : (
+            <span className="text-xl font-mono text-muted">—</span>
+          )}
+          {overrideField && (
+            <button
+              onClick={() => {
+                setInput(value !== null ? String(Math.round(value * 10) / 10) : "");
+                setEditing(true);
+              }}
+              className="ml-auto font-mono text-xs text-muted hover:text-accent opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              aria-label={`Edit ${label}`}
+            >
+              ✎
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -461,6 +569,7 @@ export default function HealthPage() {
           weight_lb: null,
         },
         meals: [],
+        overrides: {},
       });
     } finally {
       setLoading(false);
@@ -480,6 +589,7 @@ export default function HealthPage() {
   }, []);
 
   const todayMetrics = healthData?.todayMetrics ?? null;
+  const overrides = healthData?.overrides ?? {};
   const todayMeals = healthData ? healthData.meals.filter((m) => isToday(m.timestamp)) : [];
 
   return (
@@ -495,10 +605,10 @@ export default function HealthPage() {
       <div>
         <p className="font-mono text-xs text-muted uppercase tracking-widest mb-3">Today</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <MetricCard label="Steps" value={todayMetrics?.steps ?? null} unit="steps" icon="◎" loading={loading} />
-          <MetricCard label="Calories In" value={todayMetrics?.calories_in ?? null} unit="kcal" icon="◆" loading={loading} />
-          <MetricCard label="Protein" value={todayMetrics?.protein_g ?? null} unit="g" icon="◉" loading={loading} />
-          <MetricCard label="Calories Burned" value={todayMetrics?.calories_burned ?? null} unit="kcal" icon="◈" loading={loading} />
+          <MetricCard label="Steps" value={todayMetrics?.steps ?? null} unit="steps" icon="◎" loading={loading} overrideField="steps" isOverridden={overrides.steps !== undefined} onOverride={loadData} />
+          <MetricCard label="Calories In" value={todayMetrics?.calories_in ?? null} unit="kcal" icon="◆" loading={loading} overrideField="calories_in" isOverridden={overrides.calories_in !== undefined} onOverride={loadData} />
+          <MetricCard label="Protein" value={todayMetrics?.protein_g ?? null} unit="g" icon="◉" loading={loading} overrideField="protein_g" isOverridden={overrides.protein_g !== undefined} onOverride={loadData} />
+          <MetricCard label="Calories Burned" value={todayMetrics?.calories_burned ?? null} unit="kcal" icon="◈" loading={loading} overrideField="calories_burned" isOverridden={overrides.calories_burned !== undefined} onOverride={loadData} />
           <MetricCard label="Sleep" value={todayMetrics?.sleep ?? null} unit="hrs" icon="◻" loading={loading} />
           <MetricCard label="Heart Rate" value={todayMetrics?.heartRate ?? null} unit="bpm" icon="♡" loading={loading} />
         </div>

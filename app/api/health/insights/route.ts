@@ -21,9 +21,19 @@ export async function POST() {
     ]);
 
     const recentKeys = allDailyKeys.sort().slice(-7);
-    const dailyRecords = recentKeys.length > 0
-      ? await Promise.all(recentKeys.map((k) => redis.get(k)))
-      : [];
+    const overrideKeys = recentKeys.map((k) => k.replace("health:daily:", "health:override:"));
+    const [rawDaily, rawOverrides] = recentKeys.length > 0
+      ? await Promise.all([
+          Promise.all(recentKeys.map((k) => redis.get<Record<string, number | string | null>>(k))),
+          Promise.all(overrideKeys.map((k) => redis.get<Record<string, number>>(k))),
+        ])
+      : [[], []];
+
+    const dailyRecords = rawDaily.map((d, i) => {
+      if (!d) return d;
+      const o = rawOverrides[i] ?? {};
+      return { ...d, ...o };
+    });
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
