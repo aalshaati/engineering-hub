@@ -26,9 +26,11 @@ Read these files before proceeding:
 
 ---
 
-## Step 3 — Morning weight (both modes)
+## Step 3 — Pick the check-in date, then morning weight (both modes)
 
-First, check if today's record already has `weight_lb`:
+**Early-morning rule:** if the current LA time is **before 4am** and today's record is null, treat the check-in as covering **yesterday** — use yesterday's date for every `read-day` and present the snapshot labeled "YESTERDAY (date)". A post-midnight check-in is about the day that just ended, not the empty new one. (Weight handling below still applies, against that date's record.)
+
+First, check if the check-in date's record already has `weight_lb`:
 
 ```bash
 cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs read-day
@@ -47,11 +49,13 @@ cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs read
 
 ## Daily Procedure
 
-### D1 — Pull today's data
+### D1 — Pull the check-in date's data
 
 ```bash
 cd /Users/abdulla/Documents/engineering-hub && node scripts/coach-redis.mjs read-day
 ```
+
+If the early-morning rule (Step 3) shifted the check-in to yesterday, pass that date explicitly: `read-day YYYY-MM-DD`.
 
 The SDK auto-parses JSON on `.get()`. Fields to read from `record`: `calories_in`, `protein_g`, `carbs_g`, `fat_g`, `steps`, `calories_burned`, `sleep_hours`. Weight comes from the separate `weight_lb` field. A null record means no data yet today.
 
