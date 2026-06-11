@@ -15,11 +15,14 @@ Ask: **"Daily check-in or weekly review?"**
 
 ## Step 2 — Load context (both modes)
 
-Read these three files before proceeding:
+Read these files before proceeding:
 
 1. `/Users/abdulla/Documents/engineering-hub/coach/profile.md`
 2. `/Users/abdulla/Documents/engineering-hub/coach/principles.md`
-3. `/Users/abdulla/Documents/Engineering-Second-Brain/Engineering-Second-Brain/Engineering-Second-Brain/02_Projects/Health-Coach-Log.md`
+3. `/Users/abdulla/Documents/engineering-hub/coach/training.md`
+4. `/Users/abdulla/Documents/engineering-hub/coach/current-routine.md`
+5. `/Users/abdulla/Documents/engineering-hub/coach/communication-style.md`
+6. `/Users/abdulla/Documents/Engineering-Second-Brain/Engineering-Second-Brain/Engineering-Second-Brain/02_Projects/Health-Coach-Log.md`
 
 ---
 
@@ -88,7 +91,25 @@ Apply principles rule 6:
 - "A bit hungry" → note it; mild hunger in a deficit is normal, but flag if it persists multiple days in a row.
 - "Fine" → good, hold targets.
 
-### D5 — Daily verdict
+### D5 — Rotation check (silent unless something looks off)
+
+Check where the rolling PPL rotation stands against `coach/current-routine.md`. Read-only; never blocks the check-in.
+
+1. Pull recent workouts via the Hevy MCP: `mcp__hevy__get-workouts` with `pageSize: 10`. If the Hevy MCP is unavailable or errors, **skip this step silently** — missing data is not a blocker.
+2. Keep only sessions on/after **2026-06-02** (current PPL program — see `training.md` Rule 6).
+3. Classify each session as Push / Pull / Legs:
+   - If the title is literally "Push", "Pull", or "Legs" → use it.
+   - Otherwise classify by exercises (titles like "Afternoon workout 💪" are unreliable): squat / RDL / leg curl / leg extension / calf raise → **Legs**; bench / shoulder press / chest fly / pec deck / lateral raise / triceps → **Push**; pulldown / pull-up / row / shrug / curl / rear delt → **Pull**.
+4. Compute days since the most recent session of each type, and note the last two session types. **Hevy `startTime` is UTC** — convert to LA time before day math (an evening workout shows as the next UTC day).
+5. **If the rotation looks on track → say nothing about it at all.** No status line, no praise. Per `current-routine.md`, 2-session weeks are fine and the rotation is day-agnostic — silence is the default.
+6. Surface at most ONE short question only if one of these fires:
+   - A muscle group hasn't been trained in **7+ days** (below even the 3/week floor for that group).
+   - The **same session type ran twice in a row** while another group is ≥ 5 days stale.
+   - **No sessions at all in 5+ days.**
+
+   Frame it as a question, never an assumed problem — an intentional change is a fine answer. Example: *"Legs hasn't come up in 8 days — rotation still rolling, or did plans change?"* If the answer is intentional (extra cardio, recovery, schedule), accept it and move on; remember cardio counts as recovery load, not a missed session.
+
+### D6 — Daily verdict
 
 One or two sentences. Name what's on track and what needs attention before end of day.
 
@@ -194,6 +215,9 @@ Key types:
 
 - Profile: `/Users/abdulla/Documents/engineering-hub/coach/profile.md`
 - Principles: `/Users/abdulla/Documents/engineering-hub/coach/principles.md`
+- Training: `/Users/abdulla/Documents/engineering-hub/coach/training.md`
+- Current routine: `/Users/abdulla/Documents/engineering-hub/coach/current-routine.md`
+- Communication style: `/Users/abdulla/Documents/engineering-hub/coach/communication-style.md`
 - Coach log: `/Users/abdulla/Documents/Engineering-Second-Brain/Engineering-Second-Brain/Engineering-Second-Brain/02_Projects/Health-Coach-Log.md`
 - Env file: `/Users/abdulla/Documents/engineering-hub/.env.local`
 
@@ -203,6 +227,7 @@ Key types:
 
 - **No Anthropic API calls.** Runs entirely in Claude Code on the Pro plan.
 - **Daily mode is read-mostly.** Only write: `weight_lb` into `health:daily:DATE` (via `write-weight`) in Step 3. No Obsidian log changes.
+- **Hevy is read-only.** The skill never creates, updates, or deletes anything in Hevy — `get-*` tools only.
 - **Weekly mode updates the Obsidian log.** Replace in-place, never append.
 - **Missing data is not a blocker.** Null record = skip that day, note the gap, continue.
 - **Rule 6 overrides user requests.** If Abdulla asks to cut harder or faster, refuse and explain why, then offer alternatives (better adherence, more steps, etc.).
