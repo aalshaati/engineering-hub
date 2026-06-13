@@ -98,21 +98,21 @@ async function upsertDay(day: string, incomingMetrics: Record<string, Reading[]>
   ]);
   const existingMetrics: Record<string, Reading[]> = existingRaw?.metrics ?? {};
 
-  // Merge existing + incoming, deduplicating by exact match
-  const merged: Record<string, Map<string, Reading>> = {};
+  // Each sync is the source of truth for the metrics it contains, on this day.
+  // So we REPLACE a day's readings for an incoming metric rather than unioning
+  // them with what we had before. This is what makes deletions propagate: if you
+  // remove a food in your phone app, the next sync's nutrition readings no longer
+  // include it, so the stale reading drops out instead of lingering forever.
+  // Metrics absent from this sync are left untouched (e.g. don't wipe steps when
+  // only nutrition synced). Assumes Health Auto Export re-exports the full day for
+  // any metric it sends — the standard "today" automation does exactly this.
+  const mergedMetrics: Record<string, Reading[]> = { ...existingMetrics };
 
-  for (const [metricName, readings] of Object.entries(existingMetrics)) {
-    if (!merged[metricName]) merged[metricName] = new Map();
-    for (const r of readings) merged[metricName].set(dedupKey(metricName, r), r);
-  }
   for (const [metricName, readings] of Object.entries(incomingMetrics)) {
-    if (!merged[metricName]) merged[metricName] = new Map();
-    for (const r of readings) merged[metricName].set(dedupKey(metricName, r), r);
-  }
-
-  const mergedMetrics: Record<string, Reading[]> = {};
-  for (const [metricName, readingMap] of Object.entries(merged)) {
-    mergedMetrics[metricName] = [...readingMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+    // Dedupe within this sync in case a reading appears twice in one payload.
+    const deduped = new Map<string, Reading>();
+    for (const r of readings) deduped.set(dedupKey(metricName, r), r);
+    mergedMetrics[metricName] = [...deduped.values()].sort((a, b) => a.date.localeCompare(b.date));
   }
 
   const newRecord = computeDaily(day, mergedMetrics);
