@@ -17,6 +17,7 @@ type DailyRecord = {
   resting_heart_rate: number | null;
   sleep_hours: number | null;
   weight_lb?: number | null;
+  creatine_taken?: boolean | null;
   sources: string[];
   updated_at: string;
 };
@@ -48,6 +49,7 @@ export async function GET() {
       calories_burned: o.calories_burned ?? daily?.calories_burned ?? null,
       protein_g: o.protein_g ?? daily?.protein_g ?? null,
       weight_lb: daily?.weight_lb ?? null,
+      creatine_taken: daily?.creatine_taken ?? null,
     };
 
     return Response.json({ todayMetrics, meals, overrides: o });

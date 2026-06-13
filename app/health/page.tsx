@@ -22,6 +22,7 @@ type TodayMetrics = {
   calories_burned: number | null;
   protein_g: number | null;
   weight_lb: number | null;
+  creatine_taken: boolean | null;
 };
 type Overrides = Partial<Record<"steps" | "calories_in" | "calories_burned" | "protein_g", number>>;
 type HealthData = { todayMetrics: TodayMetrics; meals: MealEntry[]; overrides: Overrides };
@@ -258,6 +259,80 @@ function WeightLogger({
         </button>
         {error && <p className="font-mono text-xs text-red-400">{error}</p>}
       </form>
+    </div>
+  );
+}
+
+// ─── Creatine logger ──────────────────────────────────────────────────────────
+
+function CreatineLogger({
+  taken,
+  onLogged,
+}: {
+  taken: boolean | null;
+  onLogged: () => void;
+}) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function log(value: boolean) {
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/health/log-creatine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creatine_taken: value }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? `HTTP ${res.status}`);
+      }
+      onLogged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to log creatine");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="border border-border rounded-xl bg-sidebar overflow-hidden">
+      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+        <p className="font-mono text-xs text-muted uppercase tracking-widest">Creatine · 5g</p>
+        {taken !== null && (
+          <span className={`font-mono text-sm ${taken ? "text-accent" : "text-muted"}`}>
+            {taken ? "Taken ✓" : "Skipped"}
+          </span>
+        )}
+      </div>
+      <div className="px-5 py-4 flex flex-wrap gap-3 items-center">
+        <button
+          type="button"
+          onClick={() => log(true)}
+          disabled={submitting}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            taken === true
+              ? "bg-accent text-black hover:bg-cyan-300"
+              : "bg-card/60 border border-border text-foreground hover:border-accent/60"
+          }`}
+        >
+          Took it
+        </button>
+        <button
+          type="button"
+          onClick={() => log(false)}
+          disabled={submitting}
+          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+            taken === false
+              ? "bg-foreground/80 text-black hover:bg-foreground"
+              : "bg-card/60 border border-border text-foreground hover:border-accent/60"
+          }`}
+        >
+          Skipped
+        </button>
+        {error && <p className="font-mono text-xs text-red-400">{error}</p>}
+      </div>
     </div>
   );
 }
@@ -567,6 +642,7 @@ export default function HealthPage() {
           calories_burned: null,
           protein_g: null,
           weight_lb: null,
+          creatine_taken: null,
         },
         meals: [],
         overrides: {},
@@ -616,6 +692,9 @@ export default function HealthPage() {
 
       {/* Weight logger */}
       <WeightLogger todayWeight={todayMetrics?.weight_lb ?? null} onLogged={handleWeightLogged} />
+
+      {/* Creatine logger */}
+      <CreatineLogger taken={todayMetrics?.creatine_taken ?? null} onLogged={loadData} />
 
       {/* Weight trend chart */}
       <WeightTrendChart refreshKey={chartRefreshKey} />

@@ -21,6 +21,7 @@ type DailyRecord = {
   resting_heart_rate: number | null;
   sleep_hours: number | null;
   weight_lb?: number | null;
+  creatine_taken?: boolean | null;
   sources: string[];
   updated_at: string;
 };
@@ -116,7 +117,10 @@ async function upsertDay(day: string, incomingMetrics: Record<string, Reading[]>
   }
 
   const newRecord = computeDaily(day, mergedMetrics);
+  // Manually-logged fields aren't in the synced metrics, so carry them forward —
+  // otherwise the rebuilt record would wipe them on the next Apple Health sync.
   if (existingDaily?.weight_lb != null) newRecord.weight_lb = existingDaily.weight_lb;
+  if (existingDaily?.creatine_taken != null) newRecord.creatine_taken = existingDaily.creatine_taken;
 
   await Promise.all([
     redis.set(`health:daily:${day}`, JSON.stringify(newRecord)),
