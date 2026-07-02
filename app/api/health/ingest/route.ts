@@ -6,7 +6,9 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-type Reading = { qty: number; date: string; source?: string };
+// Most metrics carry hours/counts in qty; sleep_analysis readings have no qty —
+// their hours live in totalSleep/asleep (plus stage fields we don't use).
+type Reading = { qty?: number; date: string; source?: string; totalSleep?: number; asleep?: number };
 type HaeMetric = { name: string; units: string; data: Reading[] };
 type RawRecord = { date: string; metrics: Record<string, Reading[]>; updated_at: string };
 type DailyRecord = {
@@ -60,26 +62,27 @@ function computeDaily(day: string, rawMetrics: Record<string, Reading[]>): Daily
   for (const [metricName, fieldName] of Object.entries(SUM_METRICS)) {
     const readings = rawMetrics[metricName];
     if (!readings?.length) continue;
-    const sum = readings.reduce((acc, r) => acc + r.qty, 0);
+    const sum = readings.reduce((acc, r) => acc + (r.qty ?? 0), 0);
     (totals as Record<string, number | null>)[fieldName] = Math.round(sum * 10) / 10;
   }
 
   const hrReadings = rawMetrics["heart_rate"];
   if (hrReadings?.length) {
     const sorted = [...hrReadings].sort((a, b) => a.date.localeCompare(b.date));
-    totals.heart_rate_latest = Math.round(sorted[sorted.length - 1].qty);
+    totals.heart_rate_latest = Math.round(sorted[sorted.length - 1].qty ?? 0);
   }
 
   const rhrReadings = rawMetrics["resting_heart_rate"];
   if (rhrReadings?.length) {
     const sorted = [...rhrReadings].sort((a, b) => a.date.localeCompare(b.date));
-    totals.resting_heart_rate = Math.round(sorted[sorted.length - 1].qty);
+    totals.resting_heart_rate = Math.round(sorted[sorted.length - 1].qty ?? 0);
   }
 
+  // Sum across readings so a nap counts alongside the night's sleep.
   const sleepReadings = rawMetrics["sleep_analysis"];
   if (sleepReadings?.length) {
-    const sorted = [...sleepReadings].sort((a, b) => a.date.localeCompare(b.date));
-    totals.sleep_hours = Math.round(sorted[sorted.length - 1].qty * 10) / 10;
+    const total = sleepReadings.reduce((acc, r) => acc + (r.totalSleep ?? r.asleep ?? r.qty ?? 0), 0);
+    if (total > 0) totals.sleep_hours = Math.round(total * 10) / 10;
   }
 
   const allSources = new Set<string>();
