@@ -132,27 +132,19 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Safety net: keep appending to the original flat list
-    await redis.rpush("health:metrics", { timestamp: new Date().toISOString(), ...body });
+    const haeMetrics: HaeMetric[] = body?.data?.metrics ?? [];
 
-    // Upsert per-day records — errors here don't fail the webhook
-    try {
-      const haeMetrics: HaeMetric[] = body?.data?.metrics ?? [];
-
-      const dayMetrics: Record<string, Record<string, Reading[]>> = {};
-      for (const metric of haeMetrics) {
-        for (const reading of metric.data ?? []) {
-          const day = localDate(reading.date);
-          if (!dayMetrics[day]) dayMetrics[day] = {};
-          if (!dayMetrics[day][metric.name]) dayMetrics[day][metric.name] = [];
-          dayMetrics[day][metric.name].push(reading);
-        }
+    const dayMetrics: Record<string, Record<string, Reading[]>> = {};
+    for (const metric of haeMetrics) {
+      for (const reading of metric.data ?? []) {
+        const day = localDate(reading.date);
+        if (!dayMetrics[day]) dayMetrics[day] = {};
+        if (!dayMetrics[day][metric.name]) dayMetrics[day][metric.name] = [];
+        dayMetrics[day][metric.name].push(reading);
       }
-
-      await Promise.all(Object.entries(dayMetrics).map(([day, metrics]) => upsertDay(day, metrics)));
-    } catch (upsertErr) {
-      console.error("health:daily upsert failed:", upsertErr);
     }
+
+    await Promise.all(Object.entries(dayMetrics).map(([day, metrics]) => upsertDay(day, metrics)));
 
     return Response.json({ ok: true });
   } catch (err) {
