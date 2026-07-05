@@ -4,9 +4,11 @@ A structured health check-in for Abdulla's lean-cut protocol. Runs entirely in C
 
 ---
 
-## Step 1 — Ask mode
+## Step 1 — Determine mode
 
-Ask: **"Daily check-in or weekly review?"**
+If the skill was invoked with an argument (e.g. `/checkin daily` or `/checkin weekly`), use that mode directly — do NOT ask.
+
+Otherwise ask: **"Daily check-in or weekly review?"**
 
 - **Daily** → follow the Daily Procedure below
 - **Weekly** → follow the Weekly Procedure below
@@ -75,6 +77,8 @@ The SDK auto-parses JSON on `.get()`. Fields to read from `record`: `calories_in
 ```
 
 If `calories_in` < 600 or record is null, note: "Partial-day snapshot — pipeline may still be syncing."
+
+If `sleep_hours` is null, remind: "No sleep synced — open the Fitbit → Apple Health app and run its export, then let Health Auto Export sync." (Sleep comes from the Fitbit bridge app's manual export — free version has no auto-sync — so a missing value usually means the export wasn't run, not that sleep wasn't tracked. Don't treat it as a data-pipeline problem.)
 
 ### D3 — Protein gap with food suggestions
 
@@ -174,7 +178,22 @@ One clear decision: **keep cutting** / **adjust intake** / **diet break** / **st
 
 State the decision and the 1–2 rules that drove it. Name the training context. If adjusting intake, give the new kcal target and specify which macros change (carbs first, fat second, never protein).
 
-### W7 — Update the Obsidian log
+### W7 — Refresh Hevy routine targets (progression upkeep)
+
+Keep each routine's prescribed weights, rep targets, and notes in sync with what Abdulla actually lifted, so targets never go stale. **This is the only place the skill writes to Hevy.** Read-only otherwise.
+
+1. Pull current routines (`mcp__hevy__get-routines`) and recent workouts (reuse the `get-workouts` data from the strength read; drop `warmup` sets — `training.md` Rule 0).
+2. For each anchor lift / tracked accessory named in a routine's notes, find its most recent **working-set** performance.
+3. Apply double progression (`training.md` Rule 2), conservatively (we're in a deficit):
+   - **Earned a bump** — all working sets hit the *top* of the prescribed rep range at the prescribed weight → raise working weight one increment (~5 lb compounds, smallest plate/pin for accessories), reset reps toward the bottom of the range, and rewrite the note's "last: …" line + next target.
+   - **Progressing but not topped out** → leave the weight; just refresh the "last: …" numbers to the latest session so the note doesn't drift.
+   - **Maintaining or regressing** → do NOT bump (`training.md` Rule 4: maintenance is the win in a cut; never chase a stall with load — that routes to Rule 6). Refresh the "last: …" numbers only.
+4. Only bump on genuinely earned progress, never a single fluke set. When unsure, hold and just refresh the note.
+5. Write with `mcp__hevy__update-routine` (full exercise array; preserve order, rest times, rep ranges, and all other notes). **Embed the working weight + next target in the NOTE text too** — rep ranges set via API may not render in the Hevy app, but notes always do.
+6. **Never** modify logged workouts, and **never** change exercise *selection* — adding/swapping/removing lifts is a separate explicit decision, not part of this upkeep. This step only touches weights, rep targets, and notes.
+7. In the check-in output, summarize what was **bumped vs held**, with the numbers.
+
+### W8 — Update the Obsidian log
 
 Edit this file IN PLACE — replace sections, never append:
 
@@ -231,7 +250,7 @@ Key types:
 
 - **No Anthropic API calls.** Runs entirely in Claude Code on the Pro plan.
 - **Daily mode is read-mostly.** Only write: `weight_lb` into `health:daily:DATE` (via `write-weight`) in Step 3. No Obsidian log changes.
-- **Hevy is read-only.** The skill never creates, updates, or deletes anything in Hevy — `get-*` tools only.
+- **Hevy: routine targets yes, logs never.** Weekly mode (step W7) may update routine *targets* — prescribed weights, rep targets, and coaching notes — via `update-routine` to keep them in sync with actual performance (`training.md` Rule 2). It must NEVER create/edit/delete logged workouts, and never changes exercise *selection* (adding/swapping lifts is a separate, explicit decision). Daily mode stays fully read-only on Hevy (`get-*` only).
 - **Weekly mode updates the Obsidian log.** Replace in-place, never append.
 - **Missing data is not a blocker.** Null record = skip that day, note the gap, continue.
 - **Rule 6 overrides user requests.** If Abdulla asks to cut harder or faster, refuse and explain why, then offer alternatives (better adherence, more steps, etc.).
