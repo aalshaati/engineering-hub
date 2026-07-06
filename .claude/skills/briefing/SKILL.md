@@ -46,3 +46,13 @@ Write with the Write/Edit tools on the absolute vault path.
 End with exactly one line to stdout summarizing what happened, e.g.:
 `Briefing written to 01_Daily/2026-07-05.md — 2380 kcal / 176g protein yesterday, legs due, 3 commits shipped.`
 (This line becomes the launchd log entry.)
+
+## Step 5 — Heartbeat (never skip)
+
+Report the run to the agents dashboard, passing the Step 4 summary line:
+
+```bash
+node /Users/abdulla/Documents/engineering-hub/scripts/agent-heartbeat.mjs briefing ok "<Step 4 summary line>"
+```
+
+Use `failed` and a one-line error description instead of `ok` if the note could not be written. If this command errors, ignore it and continue — the heartbeat must never block or fail the skill.

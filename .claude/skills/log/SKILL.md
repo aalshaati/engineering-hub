@@ -33,6 +33,14 @@ Records what shipped in the project's Obsidian build log. Writes to the vault by
 
 5. **Idempotency:** if an entry for today's date already exists, extend that entry with the new bullets — do NOT create a second `###` heading for the same date.
 
+6. **Heartbeat (never skip):** after the Build Log edit succeeds, report the run:
+
+   ```bash
+   node /Users/abdulla/Documents/engineering-hub/scripts/agent-heartbeat.mjs log ok "<entry title>"
+   ```
+
+   If this command errors, ignore it and continue — the heartbeat must never block or fail the skill.
+
 ## Rules
 - Only touch the `## Build Log` section. Never modify `## Goal`, `## Decisions Made`, `## Concepts Learned`, or anything else in the file.
 - Show Abdulla the entry text before writing it.

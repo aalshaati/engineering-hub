@@ -123,6 +123,16 @@ One or two sentences. Name what's on track and what needs attention before end o
 
 **Do NOT:** compute trends, adjust targets, or write to the Obsidian log. Daily mode is read-mostly. The only write is `weight_lb` into `health:daily:DATE` in Step 3.
 
+### D7 — Heartbeat (never skip)
+
+Report the run to the agents dashboard with a one-line version of the D6 verdict:
+
+```bash
+node /Users/abdulla/Documents/engineering-hub/scripts/agent-heartbeat.mjs daily ok "<one-line verdict>"
+```
+
+Use `failed` with a short reason if the procedure aborted partway. If this command errors, ignore it and continue — the heartbeat must never block or fail the skill.
+
 ---
 
 ## Weekly Procedure
@@ -208,6 +218,16 @@ Edit this file IN PLACE — replace sections, never append:
 - `## Lessons` — only add a one-liner if something genuinely new was learned this week; otherwise leave exactly as-is
 - `## How this file evolves` — never modify
 
+### W9 — Heartbeat (never skip)
+
+Report the run to the agents dashboard with a one-line version of the W6 verdict:
+
+```bash
+node /Users/abdulla/Documents/engineering-hub/scripts/agent-heartbeat.mjs weekly ok "<one-line verdict>"
+```
+
+Use `failed` with a short reason if the procedure aborted partway. If this command errors, ignore it and continue — the heartbeat must never block or fail the skill.
+
 ---
 
 ## Redis access reference
@@ -253,5 +273,6 @@ Key types:
 - **Hevy: routine targets yes, logs never.** Weekly mode (step W7) may update routine *targets* — prescribed weights, rep targets, and coaching notes — via `update-routine` to keep them in sync with actual performance (`training.md` Rule 2). It must NEVER create/edit/delete logged workouts, and never changes exercise *selection* (adding/swapping lifts is a separate, explicit decision). Daily mode stays fully read-only on Hevy (`get-*` only).
 - **Weekly mode updates the Obsidian log.** Replace in-place, never append.
 - **Missing data is not a blocker.** Null record = skip that day, note the gap, continue.
+- **Every run ends with its heartbeat step (D7/W9)** — even after a partial run, using `failed` if the procedure aborted. The heartbeat itself is fire-and-forget: if it errors, move on.
 - **Rule 6 overrides user requests.** If Abdulla asks to cut harder or faster, refuse and explain why, then offer alternatives (better adherence, more steps, etc.).
 - **BMR floor is dynamic.** Recompute Mifflin-St Jeor at current weight — do not use the 225 lb starting value after weight has dropped.
